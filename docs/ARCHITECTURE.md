@@ -1,17 +1,17 @@
 # Arquitectura — Open CMD
 
-Documento técnico del diseño de la app. Pensado para quien lea el código o quiera extenderlo.
+Documento técnico del diseño de la aplicación. Orientado a quien lea el código o quiera extenderlo.
 
 ## 1. Visión
 
-Open CMD es una app **WPF de proceso único** (sin backend, sin base de datos). Su trabajo es:
+Open CMD es una aplicación **WPF de proceso único** (sin backend y sin base de datos). Su trabajo es:
 
-1. Elegir / recordar una carpeta padre de proyecto
-2. Descubrir subcarpetas “proyecto”
-3. Dejar al usuario configurar selección, orden, comandos y shell
-4. Lanzar procesos externos: **Windows Terminal** y, opcionalmente, **Cursor**
+1. Elegir o recordar una carpeta padre de proyecto
+2. Descubrir subcarpetas que representen un “proyecto”
+3. Permitir al usuario configurar selección, orden, comandos y shell
+4. Lanzar procesos externos: **Windows Terminal** y, de forma opcional, **Cursor**
 
-No ejecuta los servidores de desarrollo ella misma: solo abre consolas (y opcionalmente el editor) en las rutas correctas.
+No ejecuta los servidores de desarrollo por sí misma: solo abre consolas (y, si aplica, el editor) en las rutas correctas.
 
 ## 2. Diagrama de capas
 
@@ -19,7 +19,7 @@ No ejecuta los servidores de desarrollo ella misma: solo abre consolas (y opcion
 ┌─────────────────────────────────────────────────────────┐
 │  Presentación                                           │
 │  App.xaml / MainWindow.xaml + MainWindow.xaml.cs        │
-│  (eventos UI, diálogos, drag & drop, MessageBox)        │
+│  (eventos de UI, diálogos, drag & drop, MessageBox)     │
 └───────────────────────────┬─────────────────────────────┘
                             │ DataContext / llamadas
 ┌───────────────────────────▼─────────────────────────────┐
@@ -49,11 +49,11 @@ No ejecuta los servidores de desarrollo ella misma: solo abre consolas (y opcion
 
 | Pieza | Responsabilidad | No hace |
 |-------|-----------------|---------|
-| `MainWindow` | Binding, clicks, OpenFolderDialog, errores al usuario | Lógica de scan o de `wt` |
-| `MainViewModel` | Estado observable, recientes, Save/Load settings, Launch | Parsear CLI de Terminal |
-| `ProjectScanner` | Heurísticas de detección y orden | UI / launch |
-| `TerminalLauncher` | Armar args de `wt` y `Process.Start` | Elegir qué carpetas |
-| `CursorLauncher` | `cursor.cmd . --classic` en `WorkingDirectory` | Validar UI |
+| `MainWindow` | Binding, clics, OpenFolderDialog, errores al usuario | Lógica de escaneo o de `wt` |
+| `MainViewModel` | Estado observable, recientes, guardar/cargar configuración, lanzar | Interpretar la CLI de Terminal |
+| `ProjectScanner` | Heurísticas de detección y orden | UI / lanzamiento |
+| `TerminalLauncher` | Armar argumentos de `wt` y `Process.Start` | Decidir qué carpetas abrir |
+| `CursorLauncher` | `cursor.cmd . --classic` en `WorkingDirectory` | Validar la UI |
 | `SettingsStore` | Serializar JSON en AppData | Conocer WPF |
 
 ## 3. Flujo principal
@@ -62,33 +62,33 @@ No ejecuta los servidores de desarrollo ella misma: solo abre consolas (y opcion
 
 1. `App` crea `MainWindow` → `MainViewModel.Load()`
 2. `SettingsStore.Load()` lee `%APPDATA%\OpenCmd\settings.json`
-3. Se hidratan `Recents` (máx. 3) y el shell seleccionado
-4. UI muestra zona “Elegir carpeta” + tarjetas de recientes
+3. Se hidratan `Recents` (máximo 3) y el shell seleccionado
+4. La interfaz muestra la zona “Elegir carpeta” y las tarjetas de recientes
 
 Acciones por reciente:
 
 - **Abrir** → `OpenSavedProject` (LoadRoot + LaunchTerminal)
-- **Editar** → `LoadRoot` (entra a la vista de proyecto sin lanzar)
+- **Editar** → `LoadRoot` (entra a la vista del proyecto sin lanzar la terminal)
 - **Cursor** → `CursorLauncher.Open(path)`
 
 ### 3.2 Dentro de un proyecto
 
 1. `LoadRoot(path)` normaliza la ruta y llama a `ProjectScanner.Scan`
 2. Se aplican `Order`, `Unchecked` y `Commands` guardados para esa raíz
-3. El usuario marca carpetas, reordena, escribe comandos
+3. El usuario marca carpetas, reordena y escribe comandos
 4. **Abrir en N paneles** → `RememberCurrentProjects` + `TouchRecent` + `TerminalLauncher.Launch`
-5. Casita (header) → `GoHome` (persiste y limpia `RootPath`)
+5. Icono de inicio (header) → `GoHome` (persiste y limpia `RootPath`)
 
-Los recientes **solo se actualizan al lanzar la terminal**, no al solo navegar/editar.
+Los recientes **solo se actualizan al lanzar la terminal**, no al navegar o editar únicamente.
 
 ## 4. Detección de proyectos (`ProjectScanner`)
 
-Orden de estrategia:
+Orden de la estrategia:
 
 1. **Workspaces** npm/yarn (`package.json` / `pnpm-workspace`) → expandir globs
-2. **Hijos inmediatos** que parezcan proyecto (marcadores de stack)
-3. Si hay menos de 2: bajar un nivel en contenedores (`apps`, `packages`, `services`, `projects`) o en carpetas que a su vez tengan ≥2 proyectos (p. ej. `src/backend` + `src/frontend`)
-4. **Fallback**: listar hijos no “basura” (docs, tests, assets, etc.)
+2. **Hijos inmediatos** que parezcan un proyecto (marcadores de stack)
+3. Si hay menos de 2: bajar un nivel en contenedores (`apps`, `packages`, `services`, `projects`) o en carpetas que a su vez tengan 2 o más proyectos (por ejemplo `src/backend` + `src/frontend`)
+4. **Fallback**: listar hijos que no sean carpetas auxiliares (docs, tests, assets, etc.)
 
 ### Marcadores (ejemplos)
 
@@ -96,30 +96,30 @@ Orden de estrategia:
 
 ### Roles y orden
 
-Nombres como `backend`, `frontend`, `api`, `web`, `server`, `client` (y variantes ES) influyen en el sort: backend-like antes que frontend-like.
+Nombres como `backend`, `frontend`, `api`, `web`, `server`, `client` (y variantes en español) influyen en el ordenamiento: primero las carpetas tipo backend y después las tipo frontend.
 
-Carpetas ignoradas: `node_modules`, `.git`, `dist`, `bin`, `obj`, venvs, etc.
+Carpetas ignoradas: `node_modules`, `.git`, `dist`, `bin`, `obj`, entornos virtuales, etc.
 
 ## 5. Lanzamiento de Windows Terminal (`TerminalLauncher`)
 
-### Por qué no un string de PowerShell suelto
+### Por qué no un comando de PowerShell suelto
 
-`wt.exe` interpreta `;` como separador de sus propios comandos. Un `-Command` con `;` se parte mal. Por eso:
+`wt.exe` interpreta `;` como separador de sus propios comandos. Un `-Command` con `;` se parte de forma incorrecta. Por eso:
 
 - PowerShell / pwsh: el script del panel se pasa con **`-EncodedCommand`** (UTF-16LE Base64)
-- CMD: se genera un `.bat` temporal en `%TEMP%\OpenCmd` (limpieza de archivos viejos)
+- CMD: se genera un `.bat` temporal en `%TEMP%\OpenCmd` (con limpieza de archivos antiguos)
 
-### Layouts
+### Disposiciones
 
 | Paneles | Estrategia |
 |---------|------------|
-| 1 | Un tab |
+| 1 | Una pestaña |
 | 2 | `split-pane -V` |
 | 3 | Vertical + horizontal en el derecho |
-| 4 | Vertical, horizontal del derecho, `move-focus left`, horizontal del izquierdo (grilla A\|B / C\|D) |
-| 5+ | Columnas verticales con tamaños relativos |
+| 4 | Vertical, horizontal del derecho, `move-focus left`, horizontal del izquierdo (cuadrícula A\|B / C\|D) |
+| 5 o más | Columnas verticales con tamaños relativos |
 
-Siempre: `-w new` (ventana nueva).
+Siempre se usa `-w new` (ventana nueva).
 
 Cada panel:
 
@@ -130,13 +130,13 @@ Cada panel:
 ## 6. Cursor (`CursorLauncher`)
 
 ```text
-FileName        = cursor.cmd
-Arguments       = . --classic
+FileName         = cursor.cmd
+Arguments        = . --classic
 WorkingDirectory = <carpeta elegida>
-UseShellExecute = true   # necesario para .cmd
+UseShellExecute  = true   # necesario para .cmd
 ```
 
-Equivale a abrir esa carpeta en Cursor en modo classic. Si `cursor` no está en PATH, se muestra un error amigable.
+Equivale a abrir esa carpeta en Cursor en modo classic. Si `cursor` no está en el PATH, se muestra un error comprensible.
 
 ## 7. Persistencia (`SettingsStore`)
 
@@ -167,58 +167,58 @@ Equivale a abrir esa carpeta en Cursor en modo classic. Si `cursor` no está en 
 }
 ```
 
-- Claves normalizadas (`PathUtil.Normalize`), comparación case-insensitive
+- Claves normalizadas (`PathUtil.Normalize`), comparación sin distinguir mayúsculas
 - **Máximo 3** entradas en `recent`
-- Contiene **rutas absolutas de la máquina del usuario** → nunca versionar este archivo
+- Contiene **rutas absolutas de la máquina del usuario** → este archivo no debe versionarse
 
 ## 8. Modelos
 
 | Tipo | Uso |
 |------|-----|
-| `DetectedProject` | Nombre, path, kind, comando, selección, placeholder |
-| `RecentEntry` | Path + summary legible para la home |
-| `ShellOption` | Label + executable (`powershell.exe` / `pwsh.exe` / `cmd.exe`) |
+| `DetectedProject` | Nombre, ruta, tipo, comando, selección, placeholder |
+| `RecentEntry` | Ruta + resumen legible para la pantalla de inicio |
+| `ShellOption` | Etiqueta + ejecutable (`powershell.exe` / `pwsh.exe` / `cmd.exe`) |
 | `AppSettings` | DTO del JSON |
 
 `ObservableModel` es el helper mínimo de `INotifyPropertyChanged`.
 
-## 9. UI / UX
+## 9. Interfaz
 
-- **Home**: drop zone + últimos proyectos (sin casita)
-- **Proyecto**: header con logo/título + casita a la derecha; card de raíz; lista de hijos; chips de shell; CTA principal
-- Tema oscuro (`#101114`, acento mint `#6EE7B7`), title bar oscuro vía DWM (`WindowTheme`)
-- Idioma de UI: español (voseo)
+- **Inicio**: zona para soltar o elegir carpeta + últimos proyectos (sin icono de casita)
+- **Proyecto**: encabezado con logo/título e icono de inicio a la derecha; tarjeta de la raíz; lista de hijos; opciones de shell; botón principal de acción
+- Tema oscuro (`#101114`, acento mint `#6EE7B7`), barra de título oscura mediante DWM (`WindowTheme`)
+- Idioma de la interfaz: español
 
-## 10. Build y empaquetado
+## 10. Compilación y empaquetado
 
 | Modo | Comando típico | Salida |
 |------|----------------|--------|
-| Debug/run | `dotnet run` | `bin\` |
-| Publish | `dotnet publish … -o dist` | `dist\OpenCmd.exe` single-file |
+| Depuración / ejecución | `dotnet run` | `bin\` |
+| Publicación | `dotnet publish … -o dist` | `dist\OpenCmd.exe` (single-file) |
 
-- Target: `net9.0-windows`
-- `PublishSingleFile=true`, `self-contained false` → requiere runtime .NET 9 Desktop en el PC destino
-- `ApplicationIcon` + Resource WPF: `Assets/OpenCmd.ico`
+- Destino: `net9.0-windows`
+- `PublishSingleFile=true`, `self-contained false` → el equipo de destino necesita el runtime .NET 9 Desktop
+- `ApplicationIcon` + recurso WPF: `Assets/OpenCmd.ico`
 
 `bin/`, `obj/` y `dist/` están en `.gitignore`.
 
-## 11. Extender la app
+## 11. Extender la aplicación
 
-Ideas de puntos de extensión limpios:
+Puntos de extensión recomendados:
 
-| Objetivo | Dónde tocar |
-|----------|-------------|
+| Objetivo | Dónde intervenir |
+|----------|------------------|
 | Nuevo stack / marcador | `ProjectScanner.IsProject` / kind |
-| Nuevo layout de paneles | `TerminalLauncher.BuildArguments` |
-| Otro editor (VS Code, etc.) | Nuevo launcher al estilo `CursorLauncher` |
-| Más de 3 recientes | `MainViewModel.MaxRecent` + UI |
+| Nueva disposición de paneles | `TerminalLauncher.BuildArguments` |
+| Otro editor (VS Code, etc.) | Nuevo launcher al estilo de `CursorLauncher` |
+| Más de 3 recientes | `MainViewModel.MaxRecent` + interfaz |
 | Temas | recursos en `MainWindow.xaml` |
 
-Mantener la regla: **servicios sin WPF**, **ventana sin lógica de wt**.
+Regla a mantener: **servicios sin WPF** y **ventana sin lógica de `wt`**.
 
-## 12. Seguridad / límites
+## 12. Seguridad y límites
 
 - No hay red ni telemetría
-- No se ejecutan comandos remotes: solo lo que el usuario escribió en cada card + shells locales
-- Rutas con espacios se entrecomillan; trailing `\` se normaliza (excepto raíz de unidad `C:\`)
-- No incluir en el repo: settings de AppData, builds, `.env`, capturas de prueba con rutas personales
+- No se ejecutan comandos remotos: solo lo que el usuario escribió en cada tarjeta y shells locales
+- Las rutas con espacios se entrecomillan; la barra final `\` se normaliza (excepto la raíz de unidad `C:\`)
+- No incluir en el repositorio: configuración de AppData, builds, `.env` ni capturas de prueba con rutas personales
