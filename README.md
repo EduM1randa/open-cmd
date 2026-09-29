@@ -23,12 +23,12 @@ También puedes abrir la carpeta (o cada subcarpeta) en **Cursor** con `cursor .
 
 ## Requisitos
 
-| Requisito | Notas |
-|-----------|--------|
-| Windows 10/11 | Aplicación WPF |
-| [.NET 9 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/9.0) | Framework-dependent |
-| [Windows Terminal](https://aka.ms/terminal) | `wt.exe` (Microsoft Store o winget) |
-| [Cursor](https://cursor.com/) (opcional) | Solo para el botón “Abrir en Cursor” |
+| Requisito                                                                  | Notas                                |
+| -------------------------------------------------------------------------- | ------------------------------------ |
+| Windows 10/11                                                              | Aplicación WPF                       |
+| [.NET 9 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/9.0) | Framework-dependent                  |
+| [Windows Terminal](https://aka.ms/terminal)                                | `wt.exe` (Microsoft Store o winget)  |
+| [Cursor](https://cursor.com/) (opcional)                                   | Solo para el botón “Abrir en Cursor” |
 
 ---
 
@@ -131,27 +131,6 @@ open-cmd/
 ├── App.xaml / MainWindow.xaml
 ├── OpenCmd.csproj
 └── README.md
-```
-
----
-
-## Privacidad y qué no se sube
-
-Este repositorio está pensado para código fuente, no para artefactos de compilación ni datos personales.
-
-| Qué | Dónde vive | ¿En git? |
-|-----|------------|----------|
-| Código fuente | este repositorio | sí |
-| `bin/`, `obj/`, `dist/` | build local | no (`.gitignore`) |
-| `settings.json` | `%APPDATA%\OpenCmd\` | no |
-| Rutas de tus proyectos | configuración local | no |
-| `.env`, secretos | N/A | no (ignorados) |
-
-Antes del primer push conviene revisar:
-
-```powershell
-git status
-git check-ignore -v bin obj dist
 ```
 
 ---
