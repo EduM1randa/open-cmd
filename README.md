@@ -190,7 +190,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\make-icon.ps1
 
 ## Licencia
 
-Puedes agregar la licencia que prefieras al publicar (MIT, Apache-2.0, etc.). Mientras no exista un archivo `LICENSE`, el uso queda a criterio del autor del repositorio.
+Este proyecto se distribuye bajo la licencia [MIT](LICENSE).
 
 ---
 
