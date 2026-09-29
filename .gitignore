@@ -1,0 +1,33 @@
+# Build
+bin/
+obj/
+dist/
+out/
+publish/
+
+# IDE / OS
+.vs/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Local leftovers from publish / tests
+*.exe.old
+*.old
+_*.png
+*.log
+
+# Secrets / local config (runtime settings live in %APPDATA%\OpenCmd\)
+.env
+.env.*
+*.local.json
+settings.json
+
+# NuGet
+*.nupkg
+project.lock.json
